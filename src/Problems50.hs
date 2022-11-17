@@ -1,3 +1,5 @@
+module Problems50 (main) where
+
 import Problem1 (mylast)
 import Problem2 (myButLast)
 import Problem3 (elementAt)
@@ -66,6 +68,7 @@ compareSets s0 s1
     | otherwise = (all (\x -> elem x s0) s1) && (all (\x -> elem x s1) s0)
 
 
+main :: IO ()
 main = do
     print "problem1"
     assert $ mylast [1,2,3,4] == 4
@@ -248,5 +251,3 @@ main = do
 
     print "problem50"
     assert $ huffman [('a',45),('b',13),('c',12),('d',16),('e',9),('f',5)] == [('a',"0"),('b',"101"),('c',"100"),('d',"111"),('e',"1101"),('f',"1100")]
-    
-    print $ "fin"

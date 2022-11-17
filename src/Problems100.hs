@@ -1,3 +1,5 @@
+module Problems100 (main) where
+
 import Problem55 (cbalTree, toList, Tree (Node, Nil))
 import Problem56 (symmetricTree)
 import Problem57 (constructBST)
@@ -164,6 +166,7 @@ binMaybe (Just _) = 1
 binMaybe Nothing = 0
 
 
+main :: IO ()
 main = do
     print "problem55"
     let compl_bal_4 = map (map binMaybe) $ map toList $ cbalTree 4
