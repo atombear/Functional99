@@ -1,19 +1,24 @@
-module Problem91 (findTour) where
+module Problem91 (findTour, checkBoard, findZero) where
 
 import GHC.Ix (Ix)
 
 import Control.Monad.State (execStateT, StateT, get, put, lift)
 import Control.Monad (unless)
 import Control.Monad.ST (runST, ST)
+import Control.Monad.Extra ((&&^))
 
 import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef)
 import Data.Array.ST (newArray, readArray, writeArray, STUArray, getBounds, STArray)
 import Data.Array.Base (getNumElements, unsafeRead)
-import Data.MemoTrie (memo)
+import Data.MemoTrie (memo2)
+import Data.List (sort)
 
 import Debug.Trace (trace)
 
 type Board s = STUArray s (Int, Int) Int
+
+start :: (Int, Int)
+start = (3, 5)
 
 
 -- search over these relative points
@@ -24,7 +29,6 @@ cd :: [Int]
 cd = [1,2,2,1,-1,-2,-2,-1]
 
 
-
 -- unless, but with a monadic context
 unlessM :: Monad m => m Bool -> m () -> m ()
 unlessM mbool statement = mbool >>= (\bool -> unless bool statement)
@@ -32,15 +36,14 @@ unlessM mbool statement = mbool >>= (\bool -> unless bool statement)
 
 
 anyM :: (Monad m, Eq e) => (i -> m e) -> e -> [i] -> m Bool
-anyM k el [] = return True
-anyM k el (x:xs) = (k x) >>= \r -> if r == el then (return False) else (anyM k el xs)
+anyM k el [] = return False
+anyM k el (x:xs) = (k x) >>= \r -> if r == el then (return True) else (anyM k el xs)
 
 -- `False` if any element of the board is `-1`
 isSolved :: Board s -> ST s Bool
 isSolved arr = do
     ((r0,c0),(r1,c1)) <- getBounds arr
     anyM (\i -> readArray arr i) (-1) [(idx, jdx) | idx <- [r0..r1], jdx <- [c0..c1]]
-
 
 
 findElemM :: Ix i => Int -> STUArray s i Int -> Int -> Int -> ST s Bool
@@ -60,34 +63,41 @@ isSolved' arr = do
 
 
 reachable :: Int -> (Int, Int) -> [(Int, Int)]
-reachable = memo $ (\size -> \(idx,jdx) -> filter (\(i,j) -> (0<=i) && (i<size) && (0<=j) && (j<size)) [(idx+r, jdx+c) | (r, c) <- zip rd cd])
+reachable = memo2 $ (\size -> \(idx,jdx) -> filter (\(i,j) -> (0<=i) && (i<size) && (0<=j) && (j<size)) [(idx+r, jdx+c) | (r, c) <- zip rd cd])
 
 
 -- given the board and a location, find the locations to where the knight can travel
 getNextPoints :: Int -> Board s -> (Int, Int) -> ST s [(Int, Int)]
-getNextPoints size board (idx, jdx) = do
-    ((r0,c0),(r1,c1)) <- getBounds board
-    let locs = (reachable size (idx, jdx))
+getNextPoints size board (idx, jdx) = let locs = reachable size (idx, jdx) in do
     values <- mapM (\i -> readArray board i) locs
     return [p | (p, v) <- zip locs values, v == -1]
 
 
-solveUntil :: Int -> [(Int, Int)] -> Int -> StateT (Board s) (ST s) ()
-solveUntil _ [] _ = return ()
-solveUntil step (x:xs) size = do
+isCircleTour :: (Int, Int) -> Int -> StateT (Board s) (ST s) Bool
+isCircleTour (idx, jdx) size = let ridx = reachable size (idx, jdx) in do
     board <- get
-    solved <- lift $ isSolved' board
-    if solved then
-        return ()
+    let final_val = (size^2) - 1
+    is_neighbor <- lift $ anyM (\i -> readArray board i) final_val ridx
+    return is_neighbor
+
+solveUntil :: Int -> [(Int, Int)] -> Int -> StateT (Board s) (ST s) Bool
+solveUntil _ [] _ = return False
+solveUntil step (x:xs) size = do
+    circle_solved <- (return $ step == (size^2) - 1) &&^ (isCircleTour start size)
+    if circle_solved then
+        return True
     else do
-        knightFrom x (step+1) size
-        solveUntil step xs size
-        return ()
+        solved <- knightFrom x (step+1) size
+        if solved then
+            return True
+        else do
+            solved <- solveUntil step xs size
+            return solved
 
 
 -- find a tour if the knight starts at `(idx,jdx)` traversing the board held in state
 -- `step` is the enumerated knight that is being placed
-knightFrom :: (Int, Int) -> Int -> Int -> StateT (Board s) (ST s) ()
+knightFrom :: (Int, Int) -> Int -> Int -> StateT (Board s) (ST s) Bool
 knightFrom (idx, jdx) step size = do
 
     -- get the board from the state
@@ -97,23 +107,26 @@ knightFrom (idx, jdx) step size = do
     lift $ writeArray board (idx, jdx) step
 
     -- if the board is solved, return
-    solved <- lift $ isSolved' board
-    if solved then do
-        return ()
+    -- is_circle <- isCircleTour (0, 0) size
+    circle_solved <- (return $ step == (size^2) - 1) &&^ (isCircleTour start size)
+    if circle_solved then do
+        return True
     else do
         -- get the available points
         next_points <- lift $ getNextPoints size board (idx, jdx)
+
+        num_adj <- lift $ fmap (map length) $ mapM (\p -> getNextPoints size board p) next_points
+        let pointsW = map snd $ sort $ zip num_adj next_points
         
         -- act on the available points until (?) the board is solved
-        solveUntil step next_points size
+        solved <- solveUntil step pointsW size
 
         -- backtrack if the board is not solved
-        solved <- lift $ isSolved' board
         if solved then do
-            return ()
+            return True
         else do
             lift $ writeArray board (idx, jdx) (-1)
-            return ()
+            return False
     
 
 readInto2DList :: ST s (Board s) -> ST s [[Int]]
@@ -126,7 +139,7 @@ readInto2DList st_arr = do
 findTour :: Int -> [[Int]]
 findTour size = runST $ do
     brd <- newArray ((0, 0), (size-1, size-1)) (-1) :: ST s (Board s)
-    readInto2DList $ execStateT (knightFrom (0,0) 0 size) brd
+    readInto2DList $ execStateT (knightFrom start 0 size) brd
 
 
 -- scratchwork
@@ -151,6 +164,26 @@ readIntoList st_vec = do
     (low, high) <- getBounds vec
     mapM (\x -> readArray vec x) [low..high]
 -- end scratchwork
+
+
+findZero :: [[Int]] -> (Int, Int)
+findZero board = (idx, jdx)
+    where (idx, row) = head $ filter (\(i, r) -> elem 0 r) $ zip [0..] board
+          (jdx, col) = head $ filter (\(j, c) -> c == 0) $ zip [0..] row
+
+checkBoard :: [[Int]] -> (Int, Int) -> Bool
+checkBoard board (idx, jdx) = result
+    where size = length board
+          val = (board !! idx) !! jdx
+          r = reachable size (idx, jdx)
+          next_loc = head $ filter (\(i, j) -> ((board !! i) !! j) == val+1) r
+          result = if val == (size^2) - 1 then
+                       True
+                   else if length r == 0 then
+                       False
+                   else
+                       checkBoard board next_loc
+
 
 main = do
     let x = newSTRef [1,2,3]
