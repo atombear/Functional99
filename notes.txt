@@ -1,0 +1,20 @@
+useful profiling invocations
+stack ghc -- -prof -fprof-auto -rtsopts -O2 src/Main.hs
+./Main +RTS -hc -p
+
+
+or
+
+
+in .cabal
+-fprof-auto -with-rtsopts=-p
+-fprof-late -with-rtsopts=-p
+stack build --profile
+stack run --profile
+stack exec --profile -- <bin_name> +RTS -p
+
+
+
+
+flexible constraints
+-XFlexibleContexts
