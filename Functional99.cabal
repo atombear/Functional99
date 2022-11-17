@@ -23,7 +23,8 @@ executable Functional99
                        containers,
                        mtl,
                        array,
-                       MemoTrie
+                       MemoTrie,
+                       extra
   ghc-options:         -Wall
                        -Wcompat
                        -Widentities
@@ -33,3 +34,34 @@ executable Functional99
                        -Wmissing-home-modules
                        -Wpartial-fields
                        -Wredundant-constraints
+  other-modules:       Problem55
+                       Problem56
+                       Problem57
+                       Problem58
+                       Problem59
+                       Problem60
+                       Problem61
+                       Problem62
+                       Problem63
+                       Problem64
+                       Problem65
+                       Problem66
+                       Problem67
+                       Problem68
+                       Problem69
+                       Problem70
+                       Problem71
+                       Problem72
+                       Problem73
+                       Problem80
+                       Problem81
+                       Problem82
+                       Problem83
+                       Problem84
+                       Problem85
+                       Problem86
+                       Problem87
+                       Problem88
+                       Problem89
+                       Problem90
+                       Problem91

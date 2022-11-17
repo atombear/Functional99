@@ -1,11 +1,11 @@
-module Problem91 (findTour, checkBoard, findZero) where
+module Problem91 (findTour, findLoopTour, checkBoard, findZero) where
 
 import GHC.Ix (Ix)
 
 import Control.Monad.State (execStateT, StateT, get, put, lift)
 import Control.Monad (unless)
 import Control.Monad.ST (runST, ST)
-import Control.Monad.Extra ((&&^))
+import Control.Monad.Extra ((&&^), (||^))
 
 import Data.STRef (STRef, newSTRef, readSTRef, modifySTRef)
 import Data.Array.ST (newArray, readArray, writeArray, STUArray, getBounds, STArray)
@@ -16,13 +16,10 @@ import Data.List (sort)
 import Debug.Trace (trace)
 
 type Board s = STUArray s (Int, Int) Int
-data BoardConfig = BoardConfig { startBC :: (Int, Int), sizeBC :: Int }
-
-start :: (Int, Int)
-start = (0, 0)
+data BoardConfig = BoardConfig { startBC :: (Int, Int), sizeBC :: Int, findloopBC :: Bool }
 
 
--- search over these relative points
+-- search over these relative locations
 rd :: [Int]
 rd = [2,1,-1,-2,-2,-1,1,2]
 
@@ -39,6 +36,7 @@ unlessM mbool statement = mbool >>= (\bool -> unless bool statement)
 anyM :: (Monad m, Eq e) => (i -> m e) -> e -> [i] -> m Bool
 anyM k el [] = return False
 anyM k el (x:xs) = (k x) >>= \r -> if r == el then (return True) else (anyM k el xs)
+
 
 -- `False` if any element of the board is `-1`
 isSolved :: Board s -> ST s Bool
@@ -68,38 +66,48 @@ reachable = memo2 $ (\size -> \(idx,jdx) -> filter (\(i,j) -> (0<=i) && (i<size)
 
 
 -- given the board and a location, find the locations to where the knight can travel
-getNextPoints :: Int -> Board s -> (Int, Int) -> ST s [(Int, Int)]
-getNextPoints size board (idx, jdx) = let locs = reachable size (idx, jdx) in do
+getNextLocs :: BoardConfig -> Board s -> (Int, Int) -> ST s [(Int, Int)]
+getNextLocs bc board (idx, jdx) = let locs = reachable (sizeBC bc) (idx, jdx) in do
     values <- mapM (\i -> readArray board i) locs
     return [p | (p, v) <- zip locs values, v == -1]
 
 
-isCircleTour :: (Int, Int) -> Int -> StateT (Board s) (ST s) Bool
-isCircleTour (idx, jdx) size = let ridx = reachable size (idx, jdx) in do
+isLoopTour :: BoardConfig -> StateT (Board s) (ST s) Bool
+isLoopTour bc = let
+                      size = sizeBC bc
+                      start = startBC bc
+                      ridx = (reachable size start)
+                      final_val = (size^2) - 1
+                  in do
     board <- get
-    let final_val = (size^2) - 1
-    is_neighbor <- lift $ anyM (\i -> readArray board i) final_val ridx
-    return is_neighbor
+    lift $ anyM (\i -> readArray board i) final_val ridx
 
-solveUntil :: Int -> [(Int, Int)] -> Int -> StateT (Board s) (ST s) Bool
-solveUntil _ [] _ = return False
-solveUntil step (x:xs) size = do
-    circle_solved <- (return $ step == (size^2) - 1) -- &&^ (isCircleTour start size)
-    if circle_solved then
+
+solveFromPosition :: [(Int, Int)] -> Int -> BoardConfig -> StateT (Board s) (ST s) Bool
+solveFromPosition [] _ _ = return False
+solveFromPosition (x:xs) step bc = let
+                                size = sizeBC bc
+                                nofindloop = not $ findloopBC bc
+                            in do
+    solved <- (return $ step == (size^2) - 1) &&^ ((return nofindloop) ||^ (isLoopTour bc))
+    if solved then
         return True
     else do
-        solved <- knightFrom x (step+1) size
+        solved <- knightFrom x (step+1) bc
         if solved then
             return True
         else do
-            solved <- solveUntil step xs size
+            solved <- solveFromPosition xs step bc
             return solved
 
 
 -- find a tour if the knight starts at `(idx,jdx)` traversing the board held in state
 -- `step` is the enumerated knight that is being placed
-knightFrom :: (Int, Int) -> Int -> Int -> StateT (Board s) (ST s) Bool
-knightFrom (idx, jdx) step size = do
+knightFrom :: (Int, Int) -> Int -> BoardConfig -> StateT (Board s) (ST s) Bool
+knightFrom (idx, jdx) step bc = let
+                                    size = sizeBC bc
+                                    nofindloop = not $ findloopBC bc
+                                in do
 
     -- get the board from the state
     board <- get
@@ -108,19 +116,19 @@ knightFrom (idx, jdx) step size = do
     lift $ writeArray board (idx, jdx) step
 
     -- if the board is solved, return
-    -- is_circle <- isCircleTour (0, 0) size
-    circle_solved <- (return $ step == (size^2) - 1) -- &&^ (isCircleTour start size)
-    if circle_solved then do
+    solved <- (return $ step == (size^2) - 1) &&^ ((return nofindloop) ||^ (isLoopTour bc))
+    if solved then do
         return True
     else do
-        -- get the available points
-        next_points <- lift $ getNextPoints size board (idx, jdx)
+        -- get the available locations
+        next_locs <- lift $ getNextLocs bc board (idx, jdx)
 
-        num_adj <- lift $ fmap (map length) $ mapM (\p -> getNextPoints size board p) next_points
-        let pointsW = map snd $ sort $ zip num_adj next_points
+        -- Warnsdorff
+        num_adj <- lift $ mapM (\p -> (fmap length) $ getNextLocs bc board p) next_locs
+        let locsW = map snd $ sort $ zip num_adj next_locs
         
-        -- act on the available points until (?) the board is solved
-        solved <- solveUntil step pointsW size
+        -- act on the available locations until (?) the board is solved
+        solved <- solveFromPosition locsW step bc
 
         -- backtrack if the board is not solved
         if solved then do
@@ -138,11 +146,47 @@ readInto2DList st_arr = do
 
 
 findTour :: Int -> [[Int]]
-findTour size = runST $ do
+findTour size = runST $ let
+                            start = (0, 0)
+                            bc = BoardConfig { sizeBC = size, startBC = start, findloopBC = False }
+                        in do
     brd <- newArray ((0, 0), (size-1, size-1)) (-1) :: ST s (Board s)
-    readInto2DList $ execStateT (knightFrom start 0 size) brd
+    readInto2DList $ execStateT (knightFrom start 0 bc) brd
 
 
+findLoopTour :: Int -> (Int, Int) -> [[Int]]
+findLoopTour size start = runST $ let
+                                      bc = BoardConfig { sizeBC = size, startBC = start, findloopBC = True }
+                                  in do
+    brd <- newArray ((0, 0), (size-1, size-1)) (-1) :: ST s (Board s)
+    readInto2DList $ execStateT (knightFrom start 0 bc) brd
+
+
+-- find the starting location
+findZero :: [[Int]] -> (Int, Int)
+findZero board = (idx, jdx)
+    where (idx, row) = head $ filter (\(i, r) -> elem 0 r) $ zip [0..] board
+          (jdx, col) = head $ filter (\(j, c) -> c == 0) $ zip [0..] row
+
+
+-- assess whether a board is a solution
+checkBoard :: [[Int]] -> (Int, Int) -> Bool
+checkBoard board (idx, jdx) = result
+    where size = length board
+          val = (board !! idx) !! jdx
+          r = reachable size (idx, jdx)
+          next_loc = head $ filter (\(i, j) -> ((board !! i) !! j) == val+1) r
+          result = if val == (size^2) - 1 then
+                       True
+                   else if length r == 0 then
+                       False
+                   else
+                       checkBoard board next_loc
+
+
+
+
+-- -- -- -- -- -- --
 -- scratchwork
 updateVec :: ST s (STRef s [Int]) -> ST s [Int]
 updateVec st_vec = do
@@ -165,25 +209,7 @@ readIntoList st_vec = do
     (low, high) <- getBounds vec
     mapM (\x -> readArray vec x) [low..high]
 -- end scratchwork
-
-
-findZero :: [[Int]] -> (Int, Int)
-findZero board = (idx, jdx)
-    where (idx, row) = head $ filter (\(i, r) -> elem 0 r) $ zip [0..] board
-          (jdx, col) = head $ filter (\(j, c) -> c == 0) $ zip [0..] row
-
-checkBoard :: [[Int]] -> (Int, Int) -> Bool
-checkBoard board (idx, jdx) = result
-    where size = length board
-          val = (board !! idx) !! jdx
-          r = reachable size (idx, jdx)
-          next_loc = head $ filter (\(i, j) -> ((board !! i) !! j) == val+1) r
-          result = if val == (size^2) - 1 then
-                       True
-                   else if length r == 0 then
-                       False
-                   else
-                       checkBoard board next_loc
+-- -- -- -- -- -- --
 
 
 main = do
