@@ -16,9 +16,10 @@ import Data.List (sort)
 import Debug.Trace (trace)
 
 type Board s = STUArray s (Int, Int) Int
+data BoardConfig = BoardConfig { startBC :: (Int, Int), sizeBC :: Int }
 
 start :: (Int, Int)
-start = (3, 5)
+start = (0, 0)
 
 
 -- search over these relative points
@@ -83,7 +84,7 @@ isCircleTour (idx, jdx) size = let ridx = reachable size (idx, jdx) in do
 solveUntil :: Int -> [(Int, Int)] -> Int -> StateT (Board s) (ST s) Bool
 solveUntil _ [] _ = return False
 solveUntil step (x:xs) size = do
-    circle_solved <- (return $ step == (size^2) - 1) &&^ (isCircleTour start size)
+    circle_solved <- (return $ step == (size^2) - 1) -- &&^ (isCircleTour start size)
     if circle_solved then
         return True
     else do
@@ -108,7 +109,7 @@ knightFrom (idx, jdx) step size = do
 
     -- if the board is solved, return
     -- is_circle <- isCircleTour (0, 0) size
-    circle_solved <- (return $ step == (size^2) - 1) &&^ (isCircleTour start size)
+    circle_solved <- (return $ step == (size^2) - 1) -- &&^ (isCircleTour start size)
     if circle_solved then do
         return True
     else do
