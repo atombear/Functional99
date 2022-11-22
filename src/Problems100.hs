@@ -32,6 +32,7 @@ import Problem89 (bipartite)
 import Problem90 (queens)
 import Problem91 (findTour, findLoopTour, checkBoard, findZero)
 import Problem92 (vonKoch, EdgeGraphUF, checkSolnUF, NodeUF (NodeU, NodeF), updateNode)
+import Problem93 (arith, processExpr, processLevel, checkExpr)
 
 
 import qualified Data.Map as Map (Map, fromList, toList)
@@ -391,5 +392,13 @@ main = do
 
     let g92c = head $ vonKoch graph92c
     assert $ checkSolnUF graph92c g92c
+
+    print "problem93"
+    assert $ processExpr "1+1" == 1+1
+    assert $ processExpr "-1+3*8/4" == -1+3*(div 8 4)
+    assert $ processExpr "3+9-2+12*3-8*1+7*4*2-12" == 3+9-2+12*3-8*1+7*4*2-12
+
+    assert $ arith [1,2,3] == ["(1+2)=3"]
+    assert $ all id $ map checkExpr $ arith [2,3,5,7,11]
 
     print "fin"
