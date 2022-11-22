@@ -31,10 +31,11 @@ import Problem88 (connectedComponents)
 import Problem89 (bipartite)
 import Problem90 (queens)
 import Problem91 (findTour, findLoopTour, checkBoard, findZero)
+import Problem92 (vonKoch, EdgeGraphUF, checkSolnUF, NodeUF (NodeU, NodeF), updateNode)
 
 
 import qualified Data.Map as Map (Map, fromList, toList)
-import qualified Data.Set as Set (Set, fromList, toList)
+import qualified Data.Set as Set (Set, fromList, toList, map)
 
 adjFromList x = (transEdgeToAdj (Set.fromList x))
 
@@ -127,6 +128,11 @@ mtree5 = MNode 'a' [MNode 'f' [MNode 'g' []],
                     MNode 'b' [MNode 'd' [], MNode 'e' []]
                    ]
 
+graph92a = Set.fromList [(NodeU 'a', NodeU 'b'), (NodeU 'b', NodeU 'c')] :: EdgeGraphUF Char Int
+graph92b = Set.map (\(x,y) -> (NodeU x, NodeU y)) $ Set.fromList $ map (\i -> ('a', i)) ['b'..'h']
+graph92c = Set.map (\(x,y) -> (NodeU x, NodeU y)) $ Set.fromList [("1","6"),("2","6"),("3","6"),("4","6"),("5","6"),("5","7"),
+                                                                  ("5","8"),("8","9"),("5","10"),("10","11"),("11","12"),
+                                                                  ("11","13"),("13","14")] :: EdgeGraphUF String Int
 
 
 assert :: Bool -> IO ()
@@ -361,7 +367,6 @@ main = do
         loc9 = findZero b9
     assert $ checkBoard b9 loc9
 
-
     let b6_loop = findLoopTour 6 (3, 4)
         loc6_loop = findZero b6_loop
     assert $ checkBoard b6_loop loc6_loop
@@ -376,5 +381,15 @@ main = do
 
     assert $ findTour 20 == [[0,81,38,87,154,83,36,85,182,179,34,231,184,193,32,241,186,191,30,255],[39,88,79,82,37,86,181,178,35,210,183,194,33,240,185,192,31,254,187,190],[80,1,90,153,96,155,84,205,180,195,230,235,232,249,242,253,262,189,256,29],[89,40,95,78,159,198,177,196,211,204,209,244,239,234,261,250,257,252,265,188],[2,91,152,97,156,175,206,203,208,229,236,233,260,243,248,275,266,263,28,273],[41,94,77,158,199,160,197,176,217,212,245,238,247,276,287,258,251,274,269,264],[76,3,92,151,98,157,174,207,202,237,228,277,286,259,294,313,288,267,272,27],[93,42,99,74,161,200,163,216,173,218,213,246,295,312,285,292,321,270,289,268],[4,75,128,107,150,105,172,201,214,227,278,299,284,293,360,311,314,291,26,271],[43,100,73,104,129,162,215,164,219,170,225,296,357,310,315,320,361,322,317,290],[72,5,108,127,106,149,142,171,226,279,300,283,298,359,356,373,316,319,326,25],[101,44,103,70,121,130,165,220,169,224,297,358,309,372,339,362,355,374,323,318],[6,71,122,109,126,141,148,143,280,301,282,365,340,363,376,397,338,325,24,327],[45,102,69,120,131,144,221,166,223,168,341,308,377,382,371,354,375,396,335,324],[68,7,110,123,140,125,138,147,302,281,366,347,364,353,394,381,398,337,328,23],[61,46,119,66,117,132,145,222,167,342,307,344,383,378,385,370,395,334,399,336],[8,67,62,111,124,139,116,137,146,303,346,367,348,369,352,393,380,389,22,329],[47,60,49,118,65,112,133,54,115,136,343,306,345,384,379,386,333,392,19,390],[50,9,58,63,52,11,56,113,134,13,304,349,368,15,332,351,388,17,330,21],[59,48,51,10,57,64,53,12,55,114,135,14,305,350,387,16,331,20,391,18]]
 
+    print "problem92"
+
+    let g92a = head $ vonKoch graph92a
+    assert $ checkSolnUF graph92a g92a
+
+    let g92b = head $ vonKoch graph92b
+    assert $ checkSolnUF graph92b g92b
+
+    let g92c = head $ vonKoch graph92c
+    assert $ checkSolnUF graph92c g92c
 
     print "fin"

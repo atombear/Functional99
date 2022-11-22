@@ -67,7 +67,7 @@ numParents :: Ord a => AdjGraph a -> a -> Int
 numParents graph el = length $ Map.filter (\x -> Set.member el x) graph
 
 
-iso' :: Ord a => AdjGraph a -> AdjGraph a -> [a] -> [a] -> Bool
+iso' :: (Ord a, Ord b) => AdjGraph a -> AdjGraph b -> [a] -> [b] -> Bool
 iso' _ _ [] [] = True
 iso' g0 g1 nodes0 nodes1 = any id $ map check nodes1
     where el0 = head nodes0
@@ -76,10 +76,9 @@ iso' g0 g1 nodes0 nodes1 = any id $ map check nodes1
           check el1 = (checkEl1 el1) && (checkRest el1)
 
 
-iso :: (Ord a, Show a) => AdjGraph a -> AdjGraph a -> Bool
+iso :: (Ord a, Ord b, Show a) => AdjGraph a -> AdjGraph b -> Bool
 iso g0 g1 = iso' g0 g1 nodes0 nodes1
-    where empty_set = Set.fromList []
-          key_set0 = Map.keysSet g0
-          nodes0 = Set.toList $ key_set0 `Set.union` (foldl Set.union empty_set (Map.elems g0))
+    where key_set0 = Map.keysSet g0
+          nodes0 = Set.toList $ key_set0 `Set.union` (foldl Set.union (Set.fromList []) (Map.elems g0))
           key_set1 = Map.keysSet g1
-          nodes1 = Set.toList $ key_set1 `Set.union` (foldl Set.union empty_set (Map.elems g1))
+          nodes1 = Set.toList $ key_set1 `Set.union` (foldl Set.union (Set.fromList []) (Map.elems g1))

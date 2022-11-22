@@ -117,7 +117,7 @@ knightFrom (idx, jdx) step bc = let
 
     -- if the board is solved, return
     solved <- (return $ step == (size^2) - 1) &&^ ((return nofindloop) ||^ (isLoopTour bc))
-    if solved then do
+    if solved then
         return True
     else do
         -- get the available locations
@@ -131,7 +131,7 @@ knightFrom (idx, jdx) step bc = let
         solved <- solveFromPosition locsW step bc
 
         -- backtrack if the board is not solved
-        if solved then do
+        if solved then
             return True
         else do
             lift $ writeArray board (idx, jdx) (-1)
