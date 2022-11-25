@@ -33,7 +33,7 @@ import Problem90 (queens)
 import Problem91 (findTour, findLoopTour, checkBoard, findZero)
 import Problem92 (vonKoch, EdgeGraphUF, checkSolnUF, NodeUF (NodeU, NodeF), updateNode)
 import Problem93 (arith, processExpr, processLevel, checkExpr)
-
+import Problem94 (graphK)
 
 import qualified Data.Map as Map (Map, fromList, toList)
 import qualified Data.Set as Set (Set, fromList, toList, map)
@@ -400,5 +400,16 @@ main = do
 
     assert $ arith [1,2,3] == ["(1+2)=3"]
     assert $ all id $ map checkExpr $ arith [2,3,5,7,11]
+
+    print "problem94"
+
+    let g94_6_3 = graphK 6 3
+    assert $ length g94_6_3 == 2
+    assert $ g94_6_3 == [Map.fromList [(0,Set.fromList [3,4,5]),(1,Set.fromList [2,4,5]),
+                                       (2,Set.fromList [1,3,5]),(3,Set.fromList [0,2,4]),
+                                       (4,Set.fromList [0,1,3]),(5,Set.fromList [0,1,2])],
+                         Map.fromList [(0,Set.fromList [3,4,5]),(1,Set.fromList [3,4,5]),
+                                       (2,Set.fromList [3,4,5]),(3,Set.fromList [0,1,2]),
+                                       (4,Set.fromList [0,1,2]),(5,Set.fromList [0,1,2])]]
 
     print "fin"

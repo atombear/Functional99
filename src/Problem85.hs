@@ -54,8 +54,8 @@ swapLabels adj_graph src dst = transEdgeToAdj translation
           translation = Set.map (\(i,j) -> (lookup i, lookup j)) edge_graph
 
 
-isoBrute :: (Ord a, Show a) => AdjGraph a -> AdjGraph a -> Bool
-isoBrute g0 g1 = (trace $ show (nodes1, winner)) any ((==)g0) (map (swapLabels g1 nodes1) unique_perms)
+isoBrute :: Ord a => AdjGraph a -> AdjGraph a -> Bool
+isoBrute g0 g1 = any ((==)g0) (map (swapLabels g1 nodes1) unique_perms)
     where empty_set = Set.fromList []
           key_set = Map.keysSet g1
           nodes1 = Set.toList $ key_set `Set.union` (foldl Set.union empty_set (Map.elems g1))
@@ -76,7 +76,7 @@ iso' g0 g1 nodes0 nodes1 = any id $ map check nodes1
           check el1 = (checkEl1 el1) && (checkRest el1)
 
 
-iso :: (Ord a, Ord b, Show a) => AdjGraph a -> AdjGraph b -> Bool
+iso :: (Ord a, Ord b) => AdjGraph a -> AdjGraph b -> Bool
 iso g0 g1 = iso' g0 g1 nodes0 nodes1
     where key_set0 = Map.keysSet g0
           nodes0 = Set.toList $ key_set0 `Set.union` (foldl Set.union (Set.fromList []) (Map.elems g0))
