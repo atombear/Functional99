@@ -34,6 +34,8 @@ import Problem91 (findTour, findLoopTour, checkBoard, findZero)
 import Problem92 (vonKoch, EdgeGraphUF, checkSolnUF, NodeUF (NodeU, NodeF), updateNode)
 import Problem93 (arith, processExpr, processLevel, checkExpr)
 import Problem94 (graphK)
+import Problem96 (identifierAda)
+import Problem97 (loadSolve, fullCheck, arrFromIOArray)
 
 import qualified Data.Map as Map (Map, fromList, toList)
 import qualified Data.Set as Set (Set, fromList, toList, map)
@@ -411,5 +413,25 @@ main = do
                          Map.fromList [(0,Set.fromList [3,4,5]),(1,Set.fromList [3,4,5]),
                                        (2,Set.fromList [3,4,5]),(3,Set.fromList [0,1,2]),
                                        (4,Set.fromList [0,1,2]),(5,Set.fromList [0,1,2])]]
+
+    print "problem96"
+
+    assert $ identifierAda "this-is-a-long-identifier"
+    assert $ (not.identifierAda) "this-ends-in-"
+    assert $ (not.identifierAda) "two--hyphens"
+    assert $ (not.identifierAda) "123"
+    assert $ (not.identifierAda) ""
+    assert $ identifierAda "thisIsVar123"
+    assert $ identifierAda "thisIsVar-123"
+    assert $ (not.identifierAda) "thisIsVar123-"
+
+    print "problem97"
+    p97_0 <- ((loadSolve "sudoku0.txt") >>= fullCheck)
+    assert p97_0
+
+    p97_1_arr <- loadSolve "sudoku1.txt"
+    p97_1 <- fullCheck p97_1_arr
+--    (arrFromIOArray p97_1_arr) >>= listPrint
+    assert p97_1
 
     print "fin"

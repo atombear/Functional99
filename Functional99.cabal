@@ -24,7 +24,8 @@ executable Functional99
                        mtl,
                        array,
                        MemoTrie,
-                       extra
+                       extra,
+                       directory
   ghc-options:         -Wall
                        -Wcompat
                        -Widentities
@@ -110,5 +111,7 @@ executable Functional99
                        Problem92
                        Problem93
                        Problem94
+                       Problem96
+                       Problem97
                        Problems50
                        Problems100
