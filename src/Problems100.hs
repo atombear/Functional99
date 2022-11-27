@@ -36,6 +36,9 @@ import Problem93 (arith, processExpr, processLevel, checkExpr)
 import Problem94 (graphK)
 import Problem96 (identifierAda)
 import Problem97 (loadSolve, fullCheck, arrFromIOArray)
+import Problem98 (nonogram, Col (BlockHold))
+import Problem95 (fullWords)
+
 
 import qualified Data.Map as Map (Map, fromList, toList)
 import qualified Data.Set as Set (Set, fromList, toList, map)
@@ -414,6 +417,11 @@ main = do
                                        (2,Set.fromList [3,4,5]),(3,Set.fromList [0,1,2]),
                                        (4,Set.fromList [0,1,2]),(5,Set.fromList [0,1,2])]]
 
+    print "problem95"
+    assert $ fullWords 4 == "four"
+    assert $ fullWords 32 == "three-two"
+    assert $ fullWords 175 == "one-seven-five"
+
     print "problem96"
 
     assert $ identifierAda "this-is-a-long-identifier"
@@ -433,5 +441,19 @@ main = do
     p97_1 <- fullCheck p97_1_arr
 --    (arrFromIOArray p97_1_arr) >>= listPrint
     assert p97_1
+
+    print "problem98"
+    let rows98a = [[3],[2,1],[3,2],[2,2],[6],[1,5],[6],[1],[2]]
+    let cols98a = map BlockHold [[1,2],[3,1],[1,5],[7,1],[5],[3],[4],[3]]
+    assert $ (reverse $ nonogram [] 8 rows98a cols98a) == [[0,1,1,1,0,0,0,0],
+                                                           [1,1,0,1,0,0,0,0],
+                                                           [0,1,1,1,0,0,1,1],
+                                                           [0,0,1,1,0,0,1,1],
+                                                           [0,0,1,1,1,1,1,1],
+                                                           [1,0,1,1,1,1,1,0],
+                                                           [1,1,1,1,1,1,0,0],
+                                                           [0,0,0,0,1,0,0,0],
+                                                           [0,0,0,1,1,0,0,0]]
+
 
     print "fin"
